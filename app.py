@@ -197,9 +197,6 @@ for district, group in top10_per_district.groupby('DISTRICT'):
     plt.close(fig)
 
 # %%
-pip install -U kaleido
-
-# %%
 import matplotlib.pyplot as plt
 
 # Bar chart: District-wise total students with values on top
