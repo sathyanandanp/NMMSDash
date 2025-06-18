@@ -15,8 +15,9 @@ import seaborn as sns
 import pandas as pd
 import os
 
-file_path = r'C:\Users\ajith\Downloads\nmms.csv'  # or use forward slashes
+file_path = 'nmms.csv'
 
+# Check if file exists in current folder
 if os.path.exists(file_path):
     df = pd.read_csv(file_path)
     print("CSV loaded successfully!")
