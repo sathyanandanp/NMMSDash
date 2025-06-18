@@ -346,6 +346,7 @@ if __name__ == '__main__':
     app.run(debug=True)
 
 # %%
-
+# For Render deployment
+server = app.server
 
 
