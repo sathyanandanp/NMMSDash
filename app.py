@@ -23,29 +23,15 @@ else:
 
 
 # %%
-df.columns
-
-# %%
 df.columns = df.columns.str.replace(' ', '_')
-
-# %%
-df.columns
-
-# %%
-df.describe()
-
-# %%
-df.isnull().sum()
 
 # %%
 summary = df.groupby(['SCHOOL_NAME', 'COMMUNITY']).size().reset_index(name='total_students')
 
-print(summary)
 
 # %%
 pivot = df.pivot_table(index='SCHOOL_NAME', columns='COMMUNITY', values='SLNo', aggfunc='count', fill_value=0)
 
-print(pivot)
 
 # %% [markdown]
 # 
@@ -57,7 +43,6 @@ pivot['Total'] = pivot.sum(axis=1)
 # Sort by total in descending order
 pivot_sorted = pivot.sort_values('Total', ascending=False)
 
-print(pivot_sorted)
 
 # %%
 # Calculate values per school
@@ -78,10 +63,6 @@ combined = pd.concat([student_count, avg_mat, avg_sat, avg_total], axis=1)
 # Sort by student count descending
 combined = combined.sort_values('Student_Count', ascending=False)
 
-print(combined)
-
-
-
 
 # %%
 # Calculate per-school metrics
@@ -89,9 +70,10 @@ student_count = df.groupby('SCHOOL_NAME')['SLNo'].count().rename('Student_Count'
 max_total = df.groupby('SCHOOL_NAME')['TOTAL'].max().rename('Max_TOTAL')
 
 # Only calculate Avg_TOTAL for schools with at least 2 students
-avg_total = df.groupby('SCHOOL_NAME').apply(
-    lambda x: x['TOTAL'].mean() if len(x) >= 2 else None
-).rename('Avg_TOTAL')
+avg_total = df.groupby('SCHOOL_NAME')['TOTAL'].agg(
+    lambda x: x.mean() if len(x) >= 2 else None
+)
+avg_total.name = 'Avg_TOTAL'
 
 # Combine into a single DataFrame
 combined = pd.concat([student_count, max_total, avg_total], axis=1)
@@ -114,12 +96,8 @@ combined['Ranking_Score'] = (
 # Sort by Ranking_Score in descending order
 combined = combined.sort_values('Ranking_Score', ascending=False)
 
-print(combined[['Student_Count', 'Max_TOTAL', 'Avg_TOTAL', 'Ranking_Score']])
 
 # %%
-import matplotlib.pyplot as plt
-import textwrap
-
 # Remove DISTRICT from combined if it exists
 if 'DISTRICT' in combined.columns:
     combined = combined.drop(columns=['DISTRICT'])
@@ -137,109 +115,10 @@ top10_per_district = (
     .head(10)
 )
 
-print(top10_per_district[['DISTRICT', 'Student_Count', 'Max_TOTAL', 'Avg_TOTAL', 'Ranking_Score']])
-
-# Define distinct colors for each chart
-bar_colors = ['#4B8BBE', '#E06C75', '#98C379', '#FFD43B']  # blue, red, green, yellow
-
-metrics = ['Ranking_Score', 'Student_Count', 'Max_TOTAL', 'Avg_TOTAL']
-
-
-# Create output folder if it doesn't exist
-output_folder = 'top10_school_charts'
-os.makedirs(output_folder, exist_ok=True)
-
-for district, group in top10_per_district.groupby('DISTRICT'):
-    group_for_avg = group[group['Student_Count'] >= 2]
-    fig, axs = plt.subplots(2, 2, figsize=(18, 26))
-    fig.suptitle(f'Top 10 Schools in {district}', fontsize=16)
-    for i, (ax, metric) in enumerate(zip(axs.flatten(), metrics)):
-        if metric == 'Avg_TOTAL':
-            group_sorted = group_for_avg.sort_values(metric, ascending=False)
-        else:
-            group_sorted = group.sort_values(metric, ascending=False)
-        labels = [textwrap.fill(name, 15) for name in group_sorted.index]
-        bars = ax.bar(
-            labels,
-            group_sorted[metric],
-            color=bar_colors[i],
-            edgecolor='black',
-            linewidth=3,
-            zorder=3
-        )
-        for bar in bars:
-            bar.set_linewidth(3)
-            bar.set_edgecolor('black')
-            bar.set_zorder(3)
-            bar.set_capstyle('round')
-            bar.set_joinstyle('round')
-            bar.set_alpha(0.95)
-        ax.set_title(metric)
-        ax.set_xlabel('School Name')
-        ax.set_ylabel(metric)
-        ax.set_xticklabels(labels, rotation=90, ha='center', fontsize=10)
-        if metric == 'Ranking_Score':
-            ax.set_ylim(bottom=0.2)
-        elif metric in ['Max_TOTAL', 'Avg_TOTAL']:
-            ax.set_ylim(bottom=60)
-        for bar in bars:
-            height = bar.get_height()
-            ax.annotate(f'{height:.2f}',
-                        xy=(bar.get_x() + bar.get_width() / 2, height),
-                        xytext=(0, 3),
-                        textcoords="offset points",
-                        ha='center', va='bottom', fontsize=9)
-        ax.grid(axis='y', linestyle='--', alpha=0.5, zorder=0)
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    # Save figure to folder
-    filename = f"{district.replace(' ', '_')}_top10_schools.png"
-    plt.savefig(os.path.join(output_folder, filename), bbox_inches='tight')
-    plt.close(fig)
-
-# %%
-import matplotlib.pyplot as plt
-
-# Bar chart: District-wise total students with values on top
-district_counts = df['DISTRICT'].value_counts()
-plt.figure(figsize=(16, 10))
-bars = plt.bar(district_counts.index, district_counts.values, color='red', edgecolor='black')
-plt.xlabel('District')
-plt.ylabel('Total Students')
-plt.title('District-wise Total Students')
-plt.xticks(rotation=45, ha='right')
-# Add values on top of bars
-for bar in bars:
-    height = bar.get_height()
-    plt.annotate(f'{height}', xy=(bar.get_x() + bar.get_width() / 2, height),
-                 xytext=(0, 3), textcoords="offset points", ha='center', va='bottom', fontsize=8)
-plt.tight_layout()
-plt.show()
-
-# Pie chart: Community-wise total students, offset 'General' and 'ST'
-community_counts = df['COMMUNITY'].value_counts()
-explode = [0.1 if label in ['General', 'ST'] else 0 for label in community_counts.index]
-plt.figure(figsize=(12, 12))
-plt.pie(
-    community_counts,
-    labels=[f"{label} ({value})" for label, value in zip(community_counts.index, community_counts.values)],
-    autopct='%1.1f%%',
-    startangle=140,
-    explode=explode
-)
-plt.title('Community-wise Total Students')
-plt.axis('equal')
-plt.show()
-
-
-# %%
-print(df.columns)
-df = df.reset_index()
-df.columns = df.columns.str.strip()
-print(df.columns)
 
 # %%
 combined = combined.reset_index()
-print(combined.columns)
+
 
 # %%
 import dash
@@ -341,6 +220,7 @@ def update_charts(selected_district):
     pie_fig.update_layout(title="Community-wise Total Students", height=400)
 
     return bar_figs[0], bar_figs[1], bar_figs[2], bar_figs[3], pie_fig
+
 # %%
 # For Render deployment
 server = app.server
