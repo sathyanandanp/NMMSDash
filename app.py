@@ -341,12 +341,13 @@ def update_charts(selected_district):
     pie_fig.update_layout(title="Community-wise Total Students", height=400)
 
     return bar_figs[0], bar_figs[1], bar_figs[2], bar_figs[3], pie_fig
+# %%
+# For Render deployment
+server = app.server
 
 if __name__ == '__main__':
     app.run(debug=True)
 
-# %%
-# For Render deployment
-server = app.server
+
 
 
